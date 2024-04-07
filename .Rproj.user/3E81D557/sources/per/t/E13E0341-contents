@@ -1,0 +1,116 @@
+#Cleaning up data
+rm(list=ls())
+
+#loading libraries
+library(sf)
+library(ggplot2)
+library(readxl)
+
+#Loading shapefiles
+wild <- st_read("../GIS/minSize.shp")
+poultry <- st_read("../GIS/poultryFinal.shp")
+horse <- st_read("../GIS/HorsesFinal.shp")
+cattle <- st_read("../GIS/cattleFinal.shp")
+
+#Loading expert opinion data
+opinionData <- read_xlsx("../expertData/OpinionExpert.xlsx",sheet="Declaration")
+
+#Creating vectors for polygon information
+polygonsWithInformation <- unique(opinionData$`Geographical unit`[!is.na(opinionData$`Geographical unit`)]);
+wildlifeCirculation <- rep(NA,length(polygonsWithInformation));
+wildlifeContact <- rep(NA,length(polygonsWithInformation));
+livestockCirculation <- rep(NA,length(polygonsWithInformation));
+livestockContact <- rep(NA,length(polygonsWithInformation));
+livestockWildlife <- rep(NA,length(polygonsWithInformation));
+
+livestockRisk <- rep(NA,length(polygonsWithInformation));
+wildlifeRisk<- rep(NA,length(polygonsWithInformation));
+
+#Converting into numerical values
+opinionData[opinionData=="Level 1"]<-"1"
+opinionData[opinionData=="Level 2"]<-"2"
+opinionData[opinionData=="Level 3"]<-"3"
+opinionData[opinionData=="None"]<-"1"
+opinionData[opinionData=="Little"]<-"2"
+opinionData[opinionData=="Moderate"]<-"3"
+opinionData[opinionData=="High"]<-"4"
+opinionData[opinionData=="Expert"]<-"5"
+
+#Calculating values for each polygon
+for(i in 1:length(polygonsWithInformation)){
+  #Selecting information for this polygon
+  subsetData <- opinionData[opinionData$`Geographical unit`==polygonsWithInformation[i] & !is.na(opinionData$`Geographical unit`),]
+  
+  #Calculating weighted average
+  wildlifeCirculation[i] <- 
+    ( as.numeric(subsetData$`Expected level of circulation in wildlife`)*
+    (as.numeric(subsetData$`Self trust on previous column...5`)*0.2) )/ sum((as.numeric(subsetData$`Self trust on previous column...5`)*0.2))
+  wildlifeContact[i] <- 
+    ( as.numeric(subsetData$`Expected level of contact between wildlife and humans`)*
+        (as.numeric(subsetData$`Self trust on previous column...11`)*0.2) )/ sum((as.numeric(subsetData$`Self trust on previous column...11`)*0.2))
+  livestockCirculation[i] <-     
+    ( as.numeric(subsetData$`Expected level of circulation with livestock`)*
+        (as.numeric(subsetData$`Self trust on previous column...7`)*0.2) )/ sum((as.numeric(subsetData$`Self trust on previous column...7`)*0.2))
+  livestockContact[i] <- 
+    ( as.numeric(subsetData$`Expected level of contact between livestock and humans`)*
+        (as.numeric(subsetData$`Self trust on previous column...9`)*0.2) )/ sum((as.numeric(subsetData$`Self trust on previous column...9`)*0.2))
+}
+
+wildlifeCirculation=round(wildlifeCirculation)
+wildlifeContact=round(wildlifeContact)
+livestockCirculation=round(livestockCirculation)
+livestockContact=round(livestockContact)
+
+#Calculating the color for each polygon with an estimation
+for(i in 1:length(polygonsWithInformation)){
+  if(wildlifeCirculation[i]==1 && wildlifeContact[i]==1){
+    wildlifeRisk[i]=1;
+  }
+  if( (wildlifeCirculation[i]==1 && wildlifeContact[i]==2) || (wildlifeCirculation[i]==2 && wildlifeContact[i]==1) ){
+    wildlifeRisk[i]=2;
+  }
+  if( (wildlifeCirculation[i]==1 && wildlifeContact[i]==3) || (wildlifeCirculation[i]==3 && wildlifeContact[i]==1) || (wildlifeCirculation[i]==2 && wildlifeContact[i]==2) ){
+    wildlifeRisk[i]=3;
+  }
+  if( (wildlifeCirculation[i]==2 && wildlifeContact[i]==3) || (wildlifeCirculation[i]==3 && wildlifeContact[i]==2) ){
+    wildlifeRisk[i]=4;
+  }
+  if(wildlifeCirculation[i]==3 && wildlifeContact[i]==3){
+    wildlifeRisk[i]=5;
+  }
+  
+  if(livestockCirculation[i]==1 && livestockContact[i]==1){
+    livestockRisk[i]=1;
+  }
+  if( (livestockCirculation[i]==1 && livestockContact[i]==2) || (livestockCirculation[i]==2 && livestockContact[i]==1) ){
+    livestockRisk[i]=2;
+  }
+  if( (livestockCirculation[i]==1 && livestockContact[i]==3) || (livestockCirculation[i]==3 && livestockContact[i]==1) || (livestockCirculation[i]==2 && livestockContact[i]==2) ){
+    livestockRisk[i]=3;
+  }
+  if( (livestockCirculation[i]==2 && livestockContact[i]==3) || (livestockCirculation[i]==3 && livestockContact[i]==2) ){
+    livestockRisk[i]=4;
+  }
+  if(livestockCirculation[i]==3 && livestockContact[i]==3){
+    livestockRisk[i]=5;
+  }
+}
+
+#Getting the polygon ID from the shape file
+polygonsToDraw <- gsub('W','',polygonsWithInformation)
+
+#creating the output shape file
+wildCirculationShape <- wild
+#Setting all the polygons to the NULL value
+for(i in 1:length(wildCirculationShape$NumPolygon)){
+  wildCirculationShape$Area[i]=NA;
+}
+
+#Setting the polygons that have been studied to the calculatedvalue
+for(i in 1:length(polygonsToDraw)){
+  wildCirculationShape$Area[wildCirculationShape$NumPolygon==polygonsToDraw[i]] <- wildlifeRisk[i]
+}
+
+#Writing the 
+st_write(obj = wildCirculationShape, dsn="resultsWildlife.shp")
+

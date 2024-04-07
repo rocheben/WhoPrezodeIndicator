@@ -3,7 +3,7 @@
 #Cleaning up data
 rm(list=ls())
 
-setwd("/Users/broche/Mon Drive/Docs/ResearchWorks/Moi - Indicateur Zoonoses/Analyse") 
+setwd("/Users/broche/Mon Drive/Docs/ResearchWorks/Moi - Indicateur Zoonoses/Analyse/WhoPrezodeIndicator") 
 # nolint
 #loading libraries
 library(sf)
@@ -16,7 +16,7 @@ library(cowplot)
 source("risk_category.R", encoding = "UTF-8")
 
 #Loading shapefile
-borders <- st_read("../GIS/world-administrative-boundaries.shp")
+borders <- st_read("./GIS/world-administrative-boundaries.shp")
 
 #Loading expert opinion data
 opinionData <- read_xlsx("dataExpert.xlsx")
@@ -93,43 +93,40 @@ for(j in 1:4){
     compositeShape$Area[compositeShape$name==polygonsWithInformation[i]] <- compositeRisk[i]
   }
 
-  #ColorPalette
-  palette1 <- colorRampPalette(brewer.pal(9, "Reds"))
-  palette2 <- colorRampPalette(brewer.pal(9, "Blues"))
-  palette3 <- colorRampPalette(brewer.pal(9, "Purples"))
+  #Colors palette
+  all_values<-c(seq(0,9),NA)
+  wildCirculationShape$Area <- factor(wildCirculationShape$Area, levels = all_values)
+  livestockCirculationShape$Area <- factor(livestockCirculationShape$Area, levels = all_values)
+  compositeShape$Area <- factor(compositeShape$Area, levels = all_values)
+  palette1 <- colorRampPalette(brewer.pal(9, "Reds"))(length(all_values))
+  palette2 <- colorRampPalette(brewer.pal(9, "Blues"))(length(all_values))
+  palette3 <- colorRampPalette(brewer.pal(9, "Purples"))(length(all_values))
 
-  #Saving summary indices 
+  #Plotting summary indices 
   wildlifePlot <- ggplot() +
     geom_sf(data = wildCirculationShape, aes(fill = as.factor(Area))) +
-    scale_fill_manual(values = palette1(n_distinct(as.factor(wildCirculationShape$Area)))) +
-    theme_minimal()+labs(fill = "Wildlife aggregated risk")
+    theme_minimal()+labs(fill = "Wildlife aggregated risk")+
+    scale_fill_manual(values = palette1,breaks = all_values)
   ggsave(paste(pathogen[j], "_wildlifePlot.pdf"),wildlifePlot,width = 10, height = 5, dpi = 150, units = "in");
-  #st_write(obj = wildCirculationShape, dsn=paste("resultsWildlife_",pathogen[j],".shp"))
+  st_write(obj = wildCirculationShape, dsn=paste("resultsWildlife_",pathogen[j],".shp"))
   
   liveStockPlot <- ggplot() +
     geom_sf(data = livestockCirculationShape, aes(fill = as.factor(Area))) +
-    scale_fill_manual(values = palette2(n_distinct(as.factor(livestockCirculationShape$Area)))) +
+    scale_fill_manual(values = palette2,breaks = all_values) +
     theme_minimal()+labs(fill = "Livestock aggregated risk")
-  
-  #st_write(obj = livestockCirculationShape, dsn=paste("resultslivestock_",pathogen[j],".shp"))
+  st_write(obj = livestockCirculationShape, dsn=paste("resultslivestock_",pathogen[j],".shp"))
   ggsave(paste(pathogen[j],"_liveStockPlot.pdf"),liveStockPlot,width = 10, height = 5, dpi = 150, units = "in");
 
   compositePlot <- ggplot() +
-    geom_sf(data = compositeShape, aes(fill = as.factor(compositeShape$Area))) +
-    scale_fill_manual(values = palette3(n_distinct(as.factor(compositeShape$Area)))) +
+    geom_sf(data = compositeShape, aes(fill = as.factor(Area))) +
+    scale_fill_manual(values = palette3, breaks = all_values) +
     labs(fill = "Overall aggregated risk")+ theme_minimal()
-
-  
-  #st_write(obj = compositeShape, dsn=paste("resultsComposite_",pathogen[j],".shp"))
+  st_write(obj = compositeShape, dsn=paste("resultsComposite_",pathogen[j],".shp"))
   ggsave(paste(pathogen[j], "_compositePlot_.pdf"),compositePlot,width = 10, height = 5, dpi = 150, units = "in");
 
   # Create a composite plot
-
   temp <- plot_grid(wildlifePlot, liveStockPlot, compositePlot, 
                  nrow = 2, ncol = 2, align = "v", hjust = c(0, 0, 0.5))
-
   ggsave(paste(pathogen[j], "_AllPlots.pdf"), temp,width = 10, height = 5, dpi = 150, units = "in");
 
 }
-
-print("done")
