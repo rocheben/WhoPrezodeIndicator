@@ -1,7 +1,15 @@
-#Validation 
+#####################################################################################
+# Author: Benjamin Roche
+# Date: 04/10/2024
+# Description: Validation of the indicators regarding the number of zoonotic infections
+#####################################################################################
+
+#Cleaning up data
 rm(list=ls())
 
+#Setting up the working directoru
 setwd("/Users/broche/Mon Drive/Docs/ResearchWorks/Moi - Indicateur Zoonoses/Analyse/WhoPrezodeIndicator") 
+
 #loading libraries
 library(sf)
 library(ggplot2)
@@ -10,6 +18,7 @@ library(RColorBrewer)
 library(dplyr)
 library(cowplot)
 
+#Loading source code for risk category
 source("sources/risk_category.R", encoding = "UTF-8")
 source("sources/weightedAverage.R")
 
@@ -18,12 +27,13 @@ borders <- st_read("./GIS/world-administrative-boundaries.shp")
 
 #Loading expert opinion data
 opinionData <- read_xlsx("./data/dataExpert.xlsx")
+
 #Loading validation data
 validationDataMers <- read.csv("./data/mers.csv")
 validationDataMers=validationDataMers[validationDataMers$transmission_route=="zoonotic",];
 validationDataAiv <- read_xlsx("./data/aiv.xlsx")
 
-#Creating vectors for polygon information
+#Getting the geographical unit with expert information
 polygonsWithInformation <- unique(opinionData$unitSelected[!is.na(opinionData$unitSelected)]);
 
 #Converting into numerical values
@@ -38,13 +48,11 @@ opinionData$wildlifeContactTrust <- as.numeric(opinionData$livestockContactTrust
 opinionData$wildlifelivestockContact <- as.numeric(opinionData$wildlifelivestockContact)
 opinionData$livestockWildlifeContactTrust <- as.numeric(opinionData$livestockWildlifeContactTrust)
 
-#Conversion country code
-
+#Conversion of country names between different datasets
 validationDataAiv$country[validationDataAiv$country=="Laos"]="Lao People\'s Democratic Republic";
 validationDataAiv$country[validationDataAiv$country=="United Kingdom"]="U.K. of Great Britain and Northern Ireland";
 validationDataAiv$country[validationDataAiv$country=="Netherland"]="Netherlands";
 validationDataAiv$country[validationDataAiv$country=="Hong Kong Special Administrative Region of China"]="Hong Kong";
-
 validationDataMers$country[validationDataMers$country=="ARE"]="United Arab Emirates";
 validationDataMers$country[validationDataMers$country=="SAU"]="Saudi Arabia";
 validationDataMers$country[validationDataMers$country=="KEN"]="Kenya";
@@ -75,10 +83,10 @@ validationDataMers$country[validationDataMers$country=="IRN"]="Iran (Islamic Rep
 validationDataMers$country[validationDataMers$country=="ISR"]="Israel";
 validationDataMers$country[validationDataMers$country=="IRQ"]="Iraq";
 
+#For each pathogen with validation data
 pathogen <- c("AIV","WNV","CCHF","MERS")
-#For each pathogen
 for(j in c(1,4)){
-	#Getting the good validation dataset according to the pathogen
+	#Getting the correct validation dataset according to the pathogen
 	if(j==1){
 		validationData=validationDataAiv[validationDataAiv$Year>2010,]
 	}
@@ -86,7 +94,7 @@ for(j in c(1,4)){
 		validationData=validationDataMers[validationDataMers$year>2010,]
 	}
 	
-	#Initializing
+	#Initializing variable and risk vectors
 	wildlifePressure <- rep(NA,length(polygonsWithInformation));
 	wildlifeContact <- rep(NA,length(polygonsWithInformation));
 	livestockPressure <- rep(NA,length(polygonsWithInformation));
@@ -97,11 +105,11 @@ for(j in c(1,4)){
 	compositeRisk<- rep(NA,length(polygonsWithInformation));
 	occurenceNb <- rep(NA,length(polygonsWithInformation));
 	
-	#Getting subset for this pathogen
+	#Subsetting the dataset for the curent pathogen
 	dataPat <- opinionData[opinionData$pathogen==pathogen[j] & !is.na(opinionData$pathogen),]
-	#Calculating values for each polygon
+	#Calculating averaged estimates for each polygon
 	for(i in 1:length(polygonsWithInformation)){
-		#Selecting information for this polygon
+		#Subsetting the data for this polygon
 		subsetData <- dataPat[dataPat$unitSelected==polygonsWithInformation[i] & !is.na(dataPat$unitSelected),]
 		
 		#Calculating weighted average
@@ -123,15 +131,19 @@ for(j in c(1,4)){
 	}
 	
 	#Plotting Histograms
-	threshold <- 0.3
 	data1 <- compositeRisk;
 	data2 <- compositeRisk[occurenceNb==0];
-	data3 <- compositeRisk[occurenceNb>threshold];
+	data3 <- compositeRisk[occurenceNb>0];
 	
-	#Average comparison
-	print(t.test(data2,data3))
+	#Mean comparison between groups
+	print(paste0("T-test for mean comparison:",t.test(data2,data3)))
+	#Correlation test between composite risk and number of zoonotic infections
+	print(cor.test(occurenceNb,compositeRisk))
+	#Poison GLM and printing the odds-ratio
+	model <- glm(occurenceNb ~ compositeRisk, family = poisson)
+	print(paste0("Odds-Ratio for ",pathogen[j],":",exp(coef(model))[2]))
 	
-	# Making vectors of the same length
+	# Converting vectors to have the same length
 	max_length <- max(length(data1), length(data2), length(data3))
 	data1 <- c(data1, rep(NA, max_length - length(data1)))
 	data2 <- c(data2, rep(NA, max_length - length(data2)))
@@ -139,7 +151,7 @@ for(j in c(1,4)){
 	df <- data.frame(value = c(data1, data2, data3),group = factor(rep(c("All", "No Occurence", "Occurence"), each = max_length)))
 	df <- df[complete.cases(df), ]
 	
-	#Plotting
+	#Plotting the histograms
 	tempPlot<-ggplot(df, aes(x = value, color = group, fill = group)) +
 		geom_density(alpha = 0.5) +
 		theme_minimal() +
@@ -150,8 +162,7 @@ for(j in c(1,4)){
 		) +
 		scale_color_manual(values = c("All" = "blue", "No Occurence" = "green", "Occurence" = "red")) +
 		scale_fill_manual(values = c("All" = "blue", "No Occurence" = "green", "Occurence" = "red"))
-	
 	ggsave(paste0("./figures/validation_",pathogen[j],".pdf"),tempPlot)
-	print(cor.test(occurenceNb,compositeRisk))
+	
 	
 }
