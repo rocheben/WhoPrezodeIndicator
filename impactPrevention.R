@@ -101,11 +101,11 @@ for (j in c(1, 4)) {
 	compositePlot <- ggplot() +
 		geom_sf(data = compositeShape, aes(fill = as.numeric(Area))) +
 		scale_fill_gradientn(
-			colours = custom_palette(100),  # Utilisez la palette avec 100 couleurs
-			values = scales::rescale(c(0, 9)),  # Échelle de 0 à 9
+			colours = custom_palette(100),
+			values = scales::rescale(c(0, 9)),
 			breaks = seq(0, 9, by = 1),
 			limits = c(0, 9),
-			name = "Composite"
+			name = "Composite\ncategory of\nhuman exposure\n"
 		)
 	
 	#Calculating the number of zoonotic infections according the relationship between composite risk and the odds-ratio
@@ -151,11 +151,11 @@ for (j in c(1, 4)) {
 	compositePlotInterv <- ggplot() +
 		geom_sf(data = compositeShape, aes(fill = as.numeric(Area))) +
 		scale_fill_gradientn(
-			colours = custom_palette(100),  # Utilisez la palette avec 100 couleurs
-			values = scales::rescale(c(0, 9)),  # Échelle de 0 à 9
+			colours = custom_palette(100),
+			values = scales::rescale(c(0, 9)),
 			breaks = seq(0, 9, by = 1),
 			limits = c(0, 9),
-			name = "Composite"
+			name = "Composite\ncategory of\nhuman exposure\n"
 		)
 	
 	#Combining the ggplot objects with the legend
@@ -166,14 +166,10 @@ for (j in c(1, 4)) {
 				   compositePlotInterv+ theme(legend.position="none"),
 				   nrow = 2,
 				   ncol = 1)
-	mapInterv <- plot_grid(legend,rel_widths = c(.4, 3),temp)
+	mapInterv <- plot_grid(legend,rel_widths = c(.8, 3),temp)
 	#Saving the plot
-	ggsave(
-		paste0("./figures/", pathogen[j], "_Interv.pdf"),
-		mapInterv,
-		dpi = 150,
-		units = "in"
-	)
+	ggsave(paste0("./figures/", pathogen[j], "_Interv.pdf"),mapInterv,dpi = 150,units = "in")
+	ggsave(paste0("./figures/", pathogen[j], "_Interv.png"),mapInterv,dpi = 150,units = "in")
 
 	#Computing the proportion of zoonotic infections averted
 	propAverted <- (sum(nbOutbreaksExpectedWithout, na.rm = T) - sum(nbOutbreaksExpectedWith, na.rm = T))/sum(nbOutbreaksExpectedWithout, na.rm = T)

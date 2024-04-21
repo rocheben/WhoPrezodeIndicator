@@ -136,7 +136,7 @@ for(j in c(1,4)){
 	data3 <- compositeRisk[occurenceNb>0];
 	
 	#Mean comparison between groups
-	print(paste0("T-test for mean comparison:",t.test(data2,data3)))
+	print(paste0("T-test for mean comparison:t=",as.numeric(t.test(data2,data3)[1])," (p-value:",t.test(data2,data3)[3],")"))
 	#Correlation test between composite risk and number of zoonotic infections
 	print(cor.test(occurenceNb,compositeRisk))
 	#Poison GLM and printing the odds-ratio
@@ -156,13 +156,14 @@ for(j in c(1,4)){
 		geom_density(alpha = 0.5) +
 		theme_minimal() +
 		labs(
-			x = "Value",
+			x = "Composite category of human exposure",
 			y = "Density",
 			title = paste0(pathogen[j]," distribution")
 		) +
 		scale_color_manual(values = c("All" = "blue", "No Occurence" = "green", "Occurence" = "red")) +
 		scale_fill_manual(values = c("All" = "blue", "No Occurence" = "green", "Occurence" = "red"))
 	ggsave(paste0("./figures/validation_",pathogen[j],".pdf"),tempPlot)
+	ggsave(paste0("./figures/validation_",pathogen[j],".png"),tempPlot)
 	
 	
 }

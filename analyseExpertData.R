@@ -109,7 +109,7 @@ for (j in 1:4) {
 			values = scales::rescale(c(0, 5)),
 			breaks = seq(0, 5, by = 1),
 			limits = c(0, 5),
-			name = "Wildlife\naggregated\nrisk"
+			name = "Category of\nhuman exposure\nfrom wildlife"
 		)
 	#Saving the plot
 	ggsave(paste0("./figures/",pathogen[j], "_wildlifePlot.pdf"),wildlifePlot, dpi = 150);
@@ -123,7 +123,7 @@ for (j in 1:4) {
 			values = scales::rescale(c(0, 5)),
 			breaks = seq(0, 5, by = 1),
 			limits = c(0, 5),
-			name = "Livestock\naggregated\nrisk"
+			name = "Category of\nhuman exposure\nfrom livestock"
 		)
 	#Saving the plot
 	ggsave(paste0("./figures/",pathogen[j],"_liveStockPlot.pdf"),liveStockPlot, dpi = 150);
@@ -137,7 +137,7 @@ for (j in 1:4) {
 			values = scales::rescale(c(0, 9)),
 			breaks = seq(0, 9, by = 1),
 			limits = c(0, 9),
-			name = "Composite\naggregated\nrisk"
+			name = "Composite\ncategory of\nhuman exposure\n"
 		)
 	ggsave(paste0("./figures/",pathogen[j], "_compositePlot.pdf"),compositePlot,dpi = 150, units = "in");
 	#st_write(obj = compositeShape, dsn=paste0("./figures/resultsComposite_",pathogen[j],postfix,".shp"),delete_dsn=T)
@@ -145,4 +145,5 @@ for (j in 1:4) {
 	# Create a composite plot
 	temp <- plot_grid(compositePlot,wildlifePlot, liveStockPlot,nrow=3,ncol=1)
 	ggsave(paste0("./figures/",pathogen[j], "_AllPlots.pdf"), temp,dpi = 150, units = "in");
+	ggsave(paste0("./figures/",pathogen[j], "_AllPlots.png"), temp,dpi = 150, units = "in");
 }
