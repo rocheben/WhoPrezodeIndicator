@@ -17,6 +17,7 @@ library(readxl)
 library(RColorBrewer)
 library(dplyr)
 library(cowplot)
+library(vscDebugger)
 
 #Loading source code for risk categories
 source("sources/risk_category.R", encoding = "UTF-8")
