@@ -131,12 +131,11 @@ for(j in c(1,4)){
 	}
 	
 	#Plotting Histograms
-	data1 <- compositeRisk;
-	data2 <- compositeRisk[occurenceNb==0];
-	data3 <- compositeRisk[occurenceNb>0];
+	data1 <- compositeRisk[occurenceNb==0];
+	data2 <- compositeRisk[occurenceNb>0];
 	
 	#Mean comparison between groups
-	print(paste0("T-test for mean comparison:t=",as.numeric(t.test(data2,data3)[1])," (p-value:",t.test(data2,data3)[3],")"))
+	print(paste0("T-test for mean comparison:t=",as.numeric(t.test(data1,data2)[1])," (p-value:",t.test(data1,data2)[3],")"))
 	#Correlation test between composite risk and number of zoonotic infections
 	print(cor.test(occurenceNb,compositeRisk))
 	#Poison GLM and printing the odds-ratio
@@ -144,24 +143,47 @@ for(j in c(1,4)){
 	print(paste0("Odds-Ratio for ",pathogen[j],":",exp(coef(model))[2]))
 	
 	# Converting vectors to have the same length
-	max_length <- max(length(data1), length(data2), length(data3))
+	max_length <- max(length(data1), length(data2))
 	data1 <- c(data1, rep(NA, max_length - length(data1)))
 	data2 <- c(data2, rep(NA, max_length - length(data2)))
-	data3 <- c(data3, rep(NA, max_length - length(data3)))
-	df <- data.frame(value = c(data1, data2, data3),group = factor(rep(c("All", "No Occurence", "Occurence"), each = max_length)))
+	df <- data.frame(value = c(data1, data2),group = factor(rep(c("No Occurence", "Occurence"), each = max_length)))
 	df <- df[complete.cases(df), ]
 	
 	#Plotting the histograms
-	tempPlot<-ggplot(df, aes(x = value, color = group, fill = group)) +
-		geom_density(alpha = 0.5) +
-		theme_minimal() +
-		labs(
-			x = "Composite category of human exposure",
-			y = "Density",
-			title = paste0(pathogen[j]," distribution")
-		) +
-		scale_color_manual(values = c("All" = "blue", "No Occurence" = "green", "Occurence" = "red")) +
-		scale_fill_manual(values = c("All" = "blue", "No Occurence" = "green", "Occurence" = "red"))
+	library(ggplot2)
+
+# Calculate average for each group
+avg_df <- df %>%
+  group_by(group) %>%
+  summarise(avg_value = mean(value))
+
+# Plot with average line
+tempPlot <- ggplot(df, aes(x = value, color = group, fill = group)) +
+  geom_density(alpha = 0.5) +
+  geom_vline(data = avg_df, aes(xintercept = avg_value, color = group), linetype = "dashed") +  # Add average line
+  theme_minimal() +
+  labs(
+    x = "Composite category of human exposure",
+    y = "Density",
+    title = paste0(pathogen[j]," distribution")
+  ) +
+  scale_color_manual(values = c("No Occurence" = "green", "Occurence" = "red")) +
+  scale_fill_manual(values = c("No Occurence" = "green", "Occurence" = "red"))
+
+tempPlot
+
+	#Plotting the boxplot
+	#tempPlot <- ggplot(df, aes(x = group, y = value, color = group, fill = group)) +
+  	#	geom_boxplot() +
+  	#	theme_minimal() +
+  	#	labs(
+    #		x = "Composite category of human exposure",
+    #		y = "Value",
+    #		title = paste0(pathogen[j], " distribution")
+  	#	) +
+  	#	scale_color_manual(values = c("No Occurence" = "green", "Occurence" = "red")) +
+  	#	scale_fill_manual(values = c("No Occurence" = "green", "Occurence" = "red"))
+
 	ggsave(paste0("./figures/validation_",pathogen[j],".pdf"),tempPlot)
 	ggsave(paste0("./figures/validation_",pathogen[j],".png"),tempPlot)
 	
