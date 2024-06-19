@@ -8,6 +8,8 @@
 
 -   *risk_category.R* - function to identify risk category
 
+-   *impactPrevention.R* - script to simulate implementation of prevention strategies
+
 `Folders:`
 
 -   *data* - (anonmyized) expert data and data used for indices validation (for AIV and MERS)
